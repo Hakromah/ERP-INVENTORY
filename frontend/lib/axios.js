@@ -1,0 +1,30 @@
+import axios from "axios";
+import { getSession } from "next-auth/react";
+import { toast } from "sonner";
+import { handleApiError } from "@/lib/handleApiError";
+
+const axiosInstance = axios.create({
+   // You can set baseURL or other custom settings here
+   baseURL: process.env.NEXT_PUBLIC_STRAPI_URL,
+});
+
+//Request interceptor -- attach Authorization token if available
+axiosInstance.interceptors.request.use(async (config) => {
+   const session = await getSession();
+   if (session?.user?.jwt) {
+      config.headers.Authorization = `Bearer ${session.user.jwt}`;
+   }
+   return config;
+});
+
+//Response interceptor -- global error handling
+axiosInstance.interceptors.response.use(
+   (response) => response,
+   (error) => {
+      const errorMessage = handleApiError(error);
+      toast.error(errorMessage); //Show toast automatically for any API error
+      return Promise.reject(error); //Sill reject to let individual catch if needed
+   }
+);
+
+export default axiosInstance;
