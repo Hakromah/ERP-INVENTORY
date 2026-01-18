@@ -43,12 +43,16 @@ const handler = NextAuth({
          if (user?.jwt) {
             token.jwt = user.jwt
             token.id = user.id
+            token.firstName = user.firstName
+            token.lastName = user.lastName
          }
          return token
       },
       async session({ session, token }) {
          // Add JWT to session object
          session.user.id = token.id
+         session.user.firstName = token.firstName
+         session.user.lastName = token.lastName
          session.jwt = token.jwt
          return session
       }
