@@ -1,26 +1,210 @@
-import { columns } from "./features/columns"
+"use client"
+import { Button } from "@/components/ui/button"
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Sheet } from "@/components/ui/sheet"
+import axiosInstance from "@/lib/axios"
+import { useEffect, useState } from "react"
+import { getColumns } from "./features/columns"
 import { DataTable } from "./features/data-table"
+import { New } from "./features/new"
+import { toast } from "sonner"
+
 
 
 const Page = () => {
+   const [categories, setCategories] = useState([]);
+   const [loading, setLoading] = useState(true);
+   const [filters, setFilters] = useState({ name: "", description: "" });
+   const [sheetOpen, setSheetOpen] = useState(false);
+   const [selectedItem, setSelectedItem] = useState(null);
 
-   const data = [
-      {
-         id: "728ed52f",
-         amount: 100,
-         status: "pending",
-         email: "m@example.com",
-      },
-      {
-         id: "489e1d42",
-         amount: 125,
-         status: "processing",
-         email: "example@gmail.com",
-      },
-      // ...
-   ]
+   //pagination states
+   const [meta, setMeta] = useState({});
+   const [page, setPage] = useState(1);
+   const [pageSize, setPageSize] = useState(10);
+
+   const handleFilterChange = (key, value) => {
+      setFilters((prev) => ({ ...prev, [key]: value }));
+      setPage(1);
+   };
+
+   // Url query builder
+   const buildQuery = () => {
+      const query = new URLSearchParams();
+      query.set("pagination[page]", page);
+      query.set("pagination[pageSize]", pageSize);
+
+      if (filters.name) {
+         query.set("filters[name][$containsi]", filters.name);
+      }
+      if (filters.description) {
+         query.set("filters[description][$containsi]", filters.description);
+      }
+
+      return query.toString();
+   }
+
+   //fetch data function can be called anytime we need
+   const fetchData = () => {
+      setLoading(true);
+      axiosInstance
+         .get(`/api/categories?${buildQuery()}`)
+         .then(response => {
+            const apiData = response.data.data.map((item) => ({
+               id: item.id,
+               name: item.name,
+               description: item.description,
+               documentId: item.documentId,
+            }));
+            setCategories(apiData);
+            setMeta(response.data.meta.pagination);
+
+         })
+         .catch(error => {
+            console.log("Failed to fetch categories:", error);
+         }).finally(() => {
+            setLoading(false);
+         });
+   }
+
+   //call fetchData when page or pageSize changes
+   useEffect(() => {
+      fetchData();
+   }, [page, pageSize, filters]);
+
+   const handlePageSizeChange = (newPageSize) => {
+      setPageSize(Number(newPageSize));
+      setPage(1); // Reset to first page when page size changes
+   }
+
+   const handleDelete = async (item) => {
+      if (!confirm(`Are you sure you want to delete "${item.name}" category?`)) return;
+      try {
+         await axiosInstance.delete(`/api/categories/${item.documentId}`);
+         await fetchData();
+         toast.success("Category deleted successfully!");
+      } catch (error) {
+         console.log("Failed to delete category:", error);
+         toast.error("Failed to delete category!");
+      }
+   }
+
+   const columns = getColumns(filters, handleFilterChange, (item) => {
+      setSelectedItem(item);
+      setSheetOpen(true);
+   }, handleDelete);
+
    return (
-      <div className="p-4 md:py-6 px-4 lg:px-6"><DataTable columns={columns} data={data} /></div>
+      <div className="p-4 md:py-6 px-4 lg:px-6">
+         <Card className="@container/card">
+            <CardHeader>
+               <CardTitle>Categories</CardTitle>
+               <CardDescription>
+                  <span >
+                     List of all categories in the stock.
+                  </span>
+               </CardDescription>
+               <CardAction >
+                  <Button
+                     onClick={() => {
+                        setSelectedItem(null);
+                        setSheetOpen(true);
+                     }}
+                  >
+                     Add a new record
+                  </Button>
+                  {/* sheet component for edit and delete */}
+                  <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+                     <New
+                        item={selectedItem}
+                        isOpen={sheetOpen}
+                        onSuccess={() => {
+                           setSheetOpen(false);
+                           fetchData();
+                        }}
+                     />
+                  </Sheet>
+               </CardAction>
+            </CardHeader>
+            <CardContent>
+               {loading ? (
+                  <p className="text-muted-foreground">Loading...</p>
+               ) : (
+                  <DataTable columns={columns} data={categories} />
+               )}
+               <div className="flex items-center justify-between space-x-2 pt-4">
+                  {/* Display current page info */}
+                  {meta && (
+                     <>
+                        {categories.length === 0
+                           ? "No rows"
+                           : `Showing ${(meta.page - 1) * meta.pageSize + 1} to ${(meta.page - 1) * meta.pageSize + categories.length
+                           } of ${meta.total} rows`}
+                     </>
+                  )}
+                  <div className="flex items-center gap-2">
+                     <Select
+                        value={String(pageSize)}
+                        onValueChange={handlePageSizeChange}
+                     >
+                        <SelectTrigger className="w-20 h-8">
+                           <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                           <SelectItem value="10">10</SelectItem>
+                           <SelectItem value="25">25</SelectItem>
+                           <SelectItem value="50">50</SelectItem>
+                        </SelectContent>
+                     </Select>
+                     <span className="text-sm">Rows per page</span>
+                  </div>
+                  <span className="whitespace-nowrap text-sm text-muted-foreground">
+                     Page {meta?.page} of {meta?.pageCount}
+                  </span>
+                  {/* Pagination controls */}
+                  <div className="flex gap-1">
+                     <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => setPage(1)}
+                        disabled={page === 1}
+                     >
+                        {'<<'}
+                     </Button>
+                     <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => setPage((old) => Math.max(old - 1, 1))}
+                        disabled={page === 1}
+                     >
+                        {'<'}
+                     </Button>
+                     <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => setPage((old) => Math.min(old + 1, meta?.pageCount || 1))}
+                        disabled={page === meta?.pageCount}
+                     >
+                        {'>'}
+                     </Button>
+                     <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => setPage(meta?.pageCount || 1)}
+                        disabled={page === meta?.pageCount}
+                     >
+                        {'>>'}
+                     </Button>
+                  </div>
+               </div>
+            </CardContent>
+         </Card>
+      </div>
    )
 }
 export default Page
