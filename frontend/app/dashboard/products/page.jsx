@@ -15,7 +15,7 @@ import { toast } from "sonner"
 const Page = () => {
    const [products, setProducts] = useState([]);
    const [loading, setLoading] = useState(true);
-   const [filters, setFilters] = useState({ name: "", description: "" });
+   const [filters, setFilters] = useState({ name: "", barcode: "", category: "", description: "", price: "" });
    const [sheetOpen, setSheetOpen] = useState(false);
    const [selectedItem, setSelectedItem] = useState(null);
 
@@ -36,8 +36,6 @@ const Page = () => {
       query.set("pagination[pageSize]", pageSize);
       query.set("populate[0]", "category");
       query.set("populate[1]", "image");
-      query.set("barcode", filters.barcode);
-      query.set("price", filters.price);
 
       if (filters.name) {
          query.set("filters[name][$containsi]", filters.name);
@@ -47,7 +45,7 @@ const Page = () => {
       }
 
       if (filters.barcode) {
-         query.set("filters[barcode][$containsi]", filters.barcode);
+         query.set("filters[barcode][$eqi]", filters.barcode);
       }
 
       if (filters.category) {

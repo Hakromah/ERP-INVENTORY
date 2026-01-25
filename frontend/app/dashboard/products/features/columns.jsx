@@ -15,23 +15,21 @@ export const getColumns = (filters, handleFilterChange, onEdit, onDelete) => [
          const thumbnailUrl = row.original.image?.formats?.thumbnail?.url;
          const baseUrl = process.env.NEXT_PUBLIC_STRAPI_URL;
          return (
-            <div className="flex items-center justify-center">
-               <div className="h-12 w-12 rounded-full overflow-hidden border bg-muted">
-                  {thumbnailUrl ? (
-                     <Image
-                        src={`${baseUrl}${thumbnailUrl}`}
-                        alt={row.original.name || "Product"}
-                        width={80}
-                        height={80}
-                        unoptimized//to prevent nextjs from optimizing the image
-                        className="object-cover h-full w-full"
-                     />
-                  ) : (
-                     <div className="flex h-full w-full items-center justify-center bg-gray-200 text-[10px]">
-                        No Img
-                     </div>
-                  )}
-               </div>
+            <div className="h-12 w-12 rounded-full overflow-hidden border bg-muted">
+               {thumbnailUrl ? (
+                  <Image
+                     src={`${baseUrl}${thumbnailUrl}`}
+                     alt={row.original.name || "Product"}
+                     width={80}
+                     height={80}
+                     unoptimized//to prevent nextjs from optimizing the image
+                     className="object-cover h-full w-full"
+                  />
+               ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-gray-200 text-[10px]">
+                     No Img
+                  </div>
+               )}
             </div>
          );
       },
