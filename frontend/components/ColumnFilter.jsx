@@ -5,9 +5,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Button } from "./ui/button";
 import { FilterX, Funnel } from "lucide-react";
 import { Input } from "./ui/input";
+import { format } from "date-fns";
 
 
-export default function ColumnFilter({ label, value, onChange, placeholder }) {
+export default function ColumnFilter({ label, value, onChange, placeholder, type = "text" }) {
    const [inputValue, setInputValue] = useState(value || "");
    const [open, setOpen] = useState(false);
 
@@ -42,13 +43,22 @@ export default function ColumnFilter({ label, value, onChange, placeholder }) {
                </PopoverTrigger>
                <PopoverContent align="start" className="w-48">
                   <div className="flex flex-col gap-2">
-                     <Input
-                        type="text"
-                        value={inputValue}
-                        onChange={(e) => setInputValue(e.target.value)}
-                        placeholder={placeholder || "Filter..."}
-                        className="w-full border border-gray-300 rounded px-2 py-1"
-                     />
+                     {type === "date" ? (
+                        <Input
+                           value={inputValue}
+                           placeholder={placeholder}
+                           onChange={(e) => setInputValue(format(new Date(e.target.value), "yyyy-MM-dd"))}
+                           className="mb-2"
+                           type="date"
+                        />
+                     ) : type === "text" ? (
+                        <Input
+                           placeholder={placeholder}
+                           value={inputValue}
+                           onChange={(e) => setInputValue(e.target.value)}
+                           className="mb-2"
+                        />
+                     ) : null}
                      <Button size="sm" className="w-full" onClick={handleApply}>
                         Apply
                      </Button>

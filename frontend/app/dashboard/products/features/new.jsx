@@ -273,7 +273,7 @@ export const New = ({ item = null, onSuccess, isOpen }) => {
                   {imagePreview && (
                      <div className="relative w-full max-w-xs">
                         <Image
-                           src={`${process.env.NEXT_PUBLIC_STRAPI_URL}${imagePreview}`}
+                           src={`${process.env.NEXT_PUBLIC_STRAPI_URL}${imagePreview}`}  
                            alt="Product preview"
                            width={500}
                            height={500}
