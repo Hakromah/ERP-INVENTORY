@@ -2,14 +2,13 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Sheet } from "@/components/ui/sheet"
 import axiosInstance from "@/lib/axios"
 import { useEffect, useState } from "react"
 import { getColumns } from "./features/columns"
 import { DataTable } from "./features/data-table"
 // import { New } from "./features/new"
-import { toast } from "sonner"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 
 
@@ -94,7 +93,7 @@ const Page = () => {
    }
 
    const handleDelete = async (item) => {
-      if (!confirm(`Are you sure you want to delete "${item.name}" sale?`)) return;
+      // if (!confirm(`Are you sure you want to delete "${item.name}" sale?`)) return;
       try {
          await axiosInstance.delete(`/api/sales/${item.documentId}`);
          await fetchData();

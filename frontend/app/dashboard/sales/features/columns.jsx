@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { IconDotsVertical } from "@tabler/icons-react"
 import { format } from "date-fns"
+import Link from "next/link"
 
-export const getColumns = (filters, handleFilterChange, onDelete) => [
+export const getColumns = (filters, handleFilterChange, onView, onDelete) => [
    {
       accessorKey: "invoice_number",
       header: () => <ColumnFilter
@@ -73,35 +74,56 @@ export const getColumns = (filters, handleFilterChange, onDelete) => [
       }
    },
 
-
    {
       id: "actions",
       cell: ({ row }) => (
-         <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-               <Button
-                  variant="ghost"
-                  className="data-[state=open]:bg-muted text-muted-foreground flex size-8"
-                  size="icon">
-                  <IconDotsVertical />
-                  <span className="sr-only">Open menu</span>
-               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-32">
-               <DropdownMenuItem
-                  onClick={() => { }}
-               >Download Invoice
-               </DropdownMenuItem>
-               <DropdownMenuSeparator />
-               {/* <DropdownMenuItem onClick={() => onDelete(row.original)}>Delete</DropdownMenuItem> */}
-               <AlertDialog>
+         <AlertDialog>
+            <DropdownMenu>
+               <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="data-[state=open]:bg-muted text-muted-foreground flex size-8"
+                     size="icon"
+                  >
+                     <IconDotsVertical />
+                     <span className="sr-only">Open menu</span>
+                  </Button>
+               </DropdownMenuTrigger>
+               <DropdownMenuContent align="end" className="w-32">
+                  {/* You can use the 'onView' here if you want an Edit button */}
+                  <Link href={`/dashboard/sales/invoice/${row.original.documentId}`}>
+                     <DropdownMenuItem>View Invoice</DropdownMenuItem>
+                  </Link>
+                  {/* Delete Trigger */}
                   <AlertDialogTrigger asChild>
-                     {/* <Button variant="outline" onClick={() => onDelete(row.original)}>Delete</Button> */}
-                     <DropdownMenuItem onClick={() => onDelete(row.original)} className="text-red-500">Delete</DropdownMenuItem>
+                     <DropdownMenuItem
+                        className="text-red-500 focus:text-red-500"
+                        onSelect={(e) => e.preventDefault()}
+                     >
+                        Delete
+                     </DropdownMenuItem>
                   </AlertDialogTrigger>
-               </AlertDialog>
-            </DropdownMenuContent>
-         </DropdownMenu>
+               </DropdownMenuContent>
+            </DropdownMenu>
+
+            <AlertDialogContent>
+               <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                     This action cannot be undone. This will permanently delete the
+                     sale for <b>{row.original.invoice_number}</b>.
+                  </AlertDialogDescription>
+               </AlertDialogHeader>
+               <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                     className="bg-red-600 hover:bg-red-700"
+                     // Now 'onDelete' is actually the delete function passed from Page.jsx
+                     onClick={() => onDelete(row.original)}
+                  >
+                     Delete
+                  </AlertDialogAction>
+               </AlertDialogFooter>
+            </AlertDialogContent>
+         </AlertDialog>
       ),
    },
 ]

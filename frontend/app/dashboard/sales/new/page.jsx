@@ -12,7 +12,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowLeftIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import z from "zod";
@@ -44,6 +44,7 @@ export default function NewInvoicePage() {
    const searchTimeout = useRef(null);
    const [loading, setLoading] = useState(false);
    const [searchResults, setSearchResults] = useState([]);
+   const [saving, setSaving] = useState(false);
 
    const form = useForm({
       resolver: zodResolver(schema),
@@ -157,11 +158,65 @@ export default function NewInvoicePage() {
    };
 
    async function onSubmit(data) {
-      const payload = {
-         ...data,
-         ...totals // Send the calculated totals to backend too
+      // 1. Prevent submission if no products
+      if (data.products.length === 0) {
+         toast.error("Please add at least one product.");
+         return;
       }
-      console.log("Submitting:", payload);
+
+      setSaving(true);
+
+      try {
+         // 2. Construct Payload
+         // We merge Form Data (data) with Calculated Math (totals)
+         const selectPayload = {
+            customer_name: data.customer_name,
+            invoice_number: data.invoice_number,
+            customer_email: data.customer_email,
+            customer_phone: data.customer_phone,
+            date: data.date,
+            notes: data.notes,
+
+            // Send the rates so you know how you calculated it later
+            discount_rate: data.discount_rate,
+            tax_rate: data.tax_rate,
+
+            // Map products to the format Strapi expects (usually relations need IDs)
+            products: data.products.map((item) => ({
+               product: item.productId, // Assuming 'product' is the relation field name in Strapi
+               quantity: item.quantity,
+               price: item.price,
+               name: item.name // Optional: store snapshot of name in case product changes later
+            })),
+
+            // 3. Access the calculated totals from the useMemo hook
+            subtotal: totals.subtotal,
+            discount_amount: totals.discountAmount,
+            tax_amount: totals.taxAmount,
+            total: totals.total,
+         };
+
+         // 4. Send to Strapi
+         const saleResponse = await axiosInstance.post(
+            `${process.env.NEXT_PUBLIC_STRAPI_URL}/api/sale-transactions`,
+            { data: selectPayload }
+         );
+
+         if (!saleResponse.data.data?.id) {
+            throw new Error("Failed to create sale: No ID returned.");
+         }
+
+         toast.success("Sale created successfully!");
+         router.push('/dashboard/sales');
+
+      } catch (error) {
+         console.error("Transaction Failed:", error);
+         // specific error message from Strapi or generic fallback
+         const errorMsg = error.response?.data?.error?.message || error.message || "An error occurred.";
+         toast.error(`Transaction Failed: ${errorMsg}`);
+      } finally {
+         setSaving(false);
+      }
    }
 
    return (
@@ -318,7 +373,11 @@ export default function NewInvoicePage() {
                         </div>
 
                         <div className="flex gap-2 w-full items-center mt-4">
-                           <Button type="submit" className="flex-1">Submit Invoice</Button>
+                           <Button
+                              type="submit"
+                              className="flex-1"
+                              disabled={saving}>
+                              {saving ? "Submitting..." : "Submit Invoice"}</Button>
                            <Button type="button" variant="outline" onClick={() => router.push('/dashboard/sales')}>Cancel</Button>
                         </div>
                      </div>
