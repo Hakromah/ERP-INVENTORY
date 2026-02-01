@@ -6,7 +6,7 @@ import { Sheet } from "@/components/ui/sheet"
 import axiosInstance from "@/lib/axios"
 import { useEffect, useState } from "react"
 import { getColumns } from "./features/columns"
-import { DataTable } from "./features/data-table"
+import { DataTable } from "@/components/data-table"
 import { New } from "./features/new"
 import { toast } from "sonner"
 

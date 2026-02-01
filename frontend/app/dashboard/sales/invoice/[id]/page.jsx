@@ -39,7 +39,7 @@ export default function InvoicePrint() {
          <div className="flex items-center gap-4">
             <Button
                variant="outline"
-               onClick={() => router.push('/dashboard/sales')}
+               onClick={() => router.back()}
                className="mb-4"
             >
                <ArrowLeftIcon className="mr-2 h-4 w-4" /> Back to Invoices

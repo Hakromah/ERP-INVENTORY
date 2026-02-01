@@ -1,13 +1,12 @@
 "use client"
+import { DataTable } from "@/components/data-table"
 import { Button } from "@/components/ui/button"
-import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import axiosInstance from "@/lib/axios"
 import { useEffect, useState } from "react"
 import { getColumns } from "./features/columns"
-import { DataTable } from "@/components/data-table"
 // import { New } from "./features/new"
-import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 
 
@@ -16,9 +15,9 @@ const Page = () => {
    const [sales, setSales] = useState([]);
    const [loading, setLoading] = useState(true);
    const [filters, setFilters] = useState({ name: "", description: "" });
-   const [sheetOpen, setSheetOpen] = useState(false);
-   const [selectedItem, setSelectedItem] = useState(null);
-   const router = useRouter();
+   const [setSheetOpen] = useState(false);
+   const [setSelectedItem] = useState(null);
+
 
    //pagination states
    const [meta, setMeta] = useState({});
@@ -52,15 +51,13 @@ const Page = () => {
          query.set("filters[customer_phone][$eqi]", filters.customer_phone);
       }
 
-      //date filtering
-      if (filters.date) {
-         const startOfDay = new Date(filters.date);
-         startOfDay.setUTCHours(0, 0, 0, 0);
-         const endOfDay = new Date(filters.date);
-         endOfDay.setUTCHours(24, 0, 0, 0);
-         query.set("filters[date][$gte]", startOfDay.toISOString());
-         query.set("filters[date][$lt]", endOfDay.toISOString());
-      }
+      //This month sales query
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1); //first day of next month
+
+      query.set("filters[date][$gte]", startOfMonth.toISOString());
+      query.set("filters[date][$lt]", endOfMonth.toISOString());
 
 
       return query.toString();
@@ -104,30 +101,21 @@ const Page = () => {
       }
    }
 
-   const columns = getColumns(filters, handleFilterChange, (item) => {
-      setSelectedItem(item);
-      setSheetOpen(true);
-   }, handleDelete);
+   const columns = getColumns(
+      filters,
+      handleFilterChange,
+      handleDelete);
 
    return (
       <div className="p-4 md:py-6 px-4 lg:px-6">
          <Card className="@container/card">
             <CardHeader>
-               <CardTitle>Sales</CardTitle>
+               <CardTitle>Monthly Sales</CardTitle>
                <CardDescription>
                   <span >
-                     List of all sales.
+                     List of monthly sales.
                   </span>
                </CardDescription>
-               <CardAction >
-                  <Button
-                     onClick={() => {
-                        router.push('/dashboard/sales/new')
-                     }}
-                  >
-                     Add a new invoice
-                  </Button>
-               </CardAction>
             </CardHeader>
             <CardContent>
                {loading ? (
