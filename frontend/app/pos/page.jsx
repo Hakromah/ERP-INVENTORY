@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
+import axiosInstance from "@/lib/axios";
 import { IconLoader2 } from "@tabler/icons-react";
 import { Minus, MinusIcon, PlusIcon, Trash2Icon, TrashIcon, X } from "lucide-react";
 import { useSession } from "next-auth/react";
@@ -10,26 +11,90 @@ import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
+import { de } from "zod/v4/locales";
 
-const categories = Array.from({ length: 20 }, (_, i) => `Category ${i + 1}`);
-const products = Array.from({ length: 30 }, (_, i) => ({
-   id: i + 1,
-   name: `Product ${i + 1}`,
-   price: parseFloat((Math.random() * 20 + 1).toFixed(2)),
-   category: categories[i % categories.length],
-   image: "/placeholder.png"
-}));
 
 
 export default function POS() {
    const [cartVisible, setCartVisible] = useState(false);
-   const [selectedCategory, setSelectedCategory] = useState("All");
+   const [selectedCategory, setSelectedCategory] = useState(null);
    const [search, setSearch] = useState("");
    const [cart, setCart] = useState([]);
    const [discount, setDiscount] = useState(5);
    const [taxRate, setTaxRate] = useState(0.1);
+   const [categories, setCategories] = useState([]);
+   const [loadingCategories, setLoadingCategories] = useState(false);
+   const [products, setProducts] = useState([]);
+   const [loadingProducts, setLoadingProducts] = useState(false);
+   const [debouncedSearch, setDebouncedSearch] = useState("");
 
    const { status } = useSession();
+
+   const fetchCategories = async () => {
+      setLoadingCategories(true);
+      try {
+
+         const res = await axiosInstance.get("/api/categories");
+         setCategories(res.data.data);
+      } catch (error) {
+         console.error("Failed to fetch categories:", error);
+         toast.error("Failed to fetch categories");
+      } finally {
+         setLoadingCategories(false);
+      }
+   }
+
+   // Fetch products
+   const fetchProducts = async () => {
+      setLoadingProducts(true);
+      try {
+
+         const params = new URLSearchParams();
+
+         params.append("populate[0]", "image");
+
+         if (debouncedSearch) {
+            params.append("filters[name][$containsi]", debouncedSearch);
+         }
+
+         if (selectedCategory !== null) {
+            params.append("filters[category][id][$eqi]", selectedCategory);
+         }
+
+         const res = await axiosInstance.get(`/api/products?${params.toString()}`);
+
+         setProducts(res.data.data);
+      } catch (error) {
+         console.error("Failed to fetch products:", error);
+         toast.error("Failed to fetch products");
+      } finally {
+         setLoadingProducts(false);
+      }
+   }
+
+   //Debounce search
+   useEffect(() => {
+      const timer = setTimeout(() => {
+         setDebouncedSearch(search);
+      }, 500);
+      return () => clearTimeout(timer);
+   }, [search]);
+
+   // fetch categories when user is authenticated
+   useEffect(() => {
+      if (status === "authenticated") {
+         fetchCategories();
+
+      }
+   }, [status]);
+
+   useEffect(() => {
+      if (status === "authenticated") {
+         fetchProducts();
+      }
+   }, [debouncedSearch, selectedCategory, status]);
+
 
    if (status === "loading")
       return (
@@ -40,12 +105,6 @@ export default function POS() {
    if (status === "unauthenticated") {
       redirect("/login");
    }
-
-   const filteredProducts = products.filter(
-      (p) =>
-         (selectedCategory === "All" || p.category === selectedCategory) &&
-         p.name.toLowerCase().includes(search.toLowerCase())
-   )
 
    const addToCart = (product) => {
       setCart((prev) => {
@@ -123,43 +182,58 @@ export default function POS() {
 
             {/* Category List */}
             <div className="flex gap-2 overflow-x-auto sticky top-26 bg-background py-2 z-10">
-               {["All", ...categories].map((cat) => (
-                  <Button
-                     key={cat}
-                     variant={cat === selectedCategory ? "default" : "outline"}
-                     onClick={() => setSelectedCategory(cat)}
-                     className="whitespace-nowrap"
-                  >
-                     {cat}
-                  </Button>
-               ))}
+               {loadingCategories ? (
+                  <div className="flex items-center gap-2 mt-10 w-full">
+                     <IconLoader2 className="size-10 animate-spin text-gray-500" />
+                     <p>Loading categories...</p>
+                  </div>
+               ) : (
+                  [{ id: null, name: "All" }, ...categories].map((cat) => (
+                     <Button
+                        key={cat?.id ?? "all"}
+                        variant={cat?.id === selectedCategory ? "default" : "outline"}
+                        onClick={() => setSelectedCategory(cat?.id)}
+                        className="whitespace-nowrap"
+                     >
+                        {cat?.name}
+                     </Button>
+                  ))
+               )}
             </div>
 
             {/* Product Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-               {filteredProducts.map((product, index) => (
-                  <Card
-                     key={index}
-                     onClick={() => addToCart(product)}
-                     className="w-full cursor-pointer overflow-hidden rounded-lg border border-primary shadow-sm p-0
+               {loadingProducts ? (
+                  <div className="flex items-center gap-2 mt-10 w-full">
+                     <IconLoader2 className="size-10 animate-spin text-gray-500" />
+                     <p>Loading products...</p>
+                  </div>
+               ) : (
+                  products.map((product, index) => (
+                     <Card
+                        key={index}
+                        onClick={() => addToCart(product)}
+                        className="w-full cursor-pointer overflow-hidden rounded-lg border border-primary shadow-sm p-0
                      hover:opacity-80"
-                  >
-                     <Image
-                        src="/square-box.jpg"
-                        alt="Product Image"
-                        width={600}
-                        height={400}
-                        className="w-full h-48 object-cover"
-                        style={{ aspectRatio: "600/400", objectFit: "cover" }}
-                     />
-                     <CardContent className="p-4 pt-0">
-                        <div className="flex items-center justify-between">
-                           <h3 className="text-base font-semibold">{product.name}</h3>
-                           <span className="text-2xl font-bold text-primary">${product.price.toFixed(2)}</span>
-                        </div>
-                     </CardContent>
-                  </Card>
-               ))}
+                     >
+                        <Image
+                           src={process.env.NEXT_PUBLIC_STRAPI_URL + product.image.url || "/square-box.jpg"}
+                           alt="Product Image"
+                           width={600}
+                           height={400}
+                           className="w-full h-48 object-cover"
+                           style={{ aspectRatio: "600/400", objectFit: "cover" }}
+                           unoptimized={true}
+                        />
+                        <CardContent className="p-4 pt-0">
+                           <div className="flex items-center justify-between">
+                              <h3 className="text-base font-semibold">{product.name}</h3>
+                              <span className="text-2xl font-bold text-primary">${product.price.toFixed(2)}</span>
+                           </div>
+                        </CardContent>
+                     </Card>
+                  ))
+               )}
             </div>
          </div>
 
@@ -194,6 +268,7 @@ export default function POS() {
                         height={400}
                         className="w-16 h-16 object-cover"
                         style={{ aspectRatio: "600/400", objectFit: "cover" }}
+                        unoptimized={true}
                      />
                      <div>
                         <div className="font-medium">{item.name}</div>
