@@ -47,6 +47,9 @@
     },
     "notes": {
       "type": "text"
+    },
+    "customer_address": {
+      "type": "text"
     }
   }
 }

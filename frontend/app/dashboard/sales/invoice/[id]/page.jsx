@@ -109,7 +109,7 @@ export default function InvoicePrint() {
             {invoice.notes && (
                <div className="mt-4">
                   <p>
-                     <strong>Notes:</strong>
+                     <strong>Notes/Customer Address:</strong>
                   </p>
                   <p className="italic">{invoice.notes}</p>
                </div>

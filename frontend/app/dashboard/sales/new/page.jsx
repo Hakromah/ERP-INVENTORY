@@ -294,7 +294,7 @@ export default function NewInvoicePage() {
                            name="notes"
                            render={({ field }) => (
                               <FormItem>
-                                 <FormLabel>Notes</FormLabel>
+                                 <FormLabel>Notes/Customer Address</FormLabel>
                                  <FormControl className="h-36">
                                     <Textarea placeholder="Additional notes" {...field} />
                                  </FormControl>

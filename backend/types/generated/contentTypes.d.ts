@@ -508,6 +508,7 @@ export interface ApiSaleSale extends Struct.CollectionTypeSchema {
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    customer_address: Schema.Attribute.Text;
     customer_email: Schema.Attribute.Email;
     customer_name: Schema.Attribute.String & Schema.Attribute.Required;
     customer_phone: Schema.Attribute.String;
