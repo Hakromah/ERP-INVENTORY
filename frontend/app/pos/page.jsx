@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import axiosInstance from "@/lib/axios";
 import { IconLoader2 } from "@tabler/icons-react";
-import { Minus, MinusIcon, PlusIcon, Trash2Icon, TrashIcon, X } from "lucide-react";
+import { ChevronLeft, Minus, MinusIcon, PlusIcon, Trash2Icon, TrashIcon, X } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
@@ -28,6 +28,7 @@ export default function POS() {
    const [products, setProducts] = useState([]);
    const [loadingProducts, setLoadingProducts] = useState(false);
    const [debouncedSearch, setDebouncedSearch] = useState("");
+   const [saving, setSaving] = useState(false);
 
    const { status } = useSession();
 
@@ -138,6 +139,69 @@ export default function POS() {
    const tax = (subtotal - discount) * taxRate;
    const total = subtotal - discount + tax;
 
+   //Save to the INVOICE
+   async function handleSave(data) {
+      // 1. Prevent submission if no products
+      if (cart.length === 0) {
+         toast.error("Please add at least one product.");
+         return;
+      }
+
+      setSaving(true);
+
+      try {
+         // 2. Construct Payload
+         // We merge Form Data (data) with Calculated Math (totals)
+         const selectPayload = {
+            customer_name: "POS Customer",
+            invoice_number: "0",
+            date: new Date(),
+            notes: "POS customer",
+
+            //Send the rates so you know how you calculated it later
+            discount_rate: discount,
+            tax_rate: taxRate,
+
+            // Map products to the format Strapi expects (usually relations need IDs)
+            products: cart.map((item) => ({
+               product: item.id, // Assuming 'product' is the relation field name in Strapi
+               quantity: item.quantity,
+               price: item.price,
+               name: item.name // Optional: store snapshot of name in case product changes later
+            })),
+
+            // 3. Access the calculated totals from the useMemo hook
+            subtotal,
+            discount_amount: discount,
+            tax_amount: tax,
+            total,
+         };
+
+         // 4. Send to Strapi
+         const saleResponse = await axiosInstance.post(
+            `${process.env.NEXT_PUBLIC_STRAPI_URL}/api/sale-transactions`,
+            { data: selectPayload }
+         );
+
+         if (!saleResponse.data.data?.id) {
+            throw new Error("Failed to create sale: No ID returned.");
+         }
+
+         setCart([]);
+         toast.success("Sale created successfully!");
+
+      } catch (error) {
+         console.error("Transaction Failed:", error);
+         // specific error message from Strapi or generic fallback
+         const errorMsg = error.response?.data?.error?.message || error.message || "An error occurred.";
+         toast.error(`Transaction Failed: ${errorMsg}`);
+      } finally {
+         setSaving(false);
+
+      }
+   }
+
+
    const handleCheckout = () => {
       // Handle checkout logic here
       console.log("Checkout:", cart);
@@ -161,11 +225,16 @@ export default function POS() {
             {/* Header */}
             <div className="sticky top-0 bg-background z-20 pb-2 mb-2 pt-2">
                <div className="flex justify-between items-center mb-2">
+                  <Link href="/dashboard">
+                     <Button size="icon" variant="outline">
+                        <ChevronLeft className="w-10 h-10" />
+                     </Button>
+                  </Link>
                   <h1 className="text-xl font-bold">Point of Sale</h1>
                   <div className="flex items-center gap-2">
                      <Link href="/dashboard">
                         <Button size="icon" variant="ghost">
-                           <X className="w-5 h-5" />
+                           <X className="w-10 h-10 text-red-700" />
                         </Button>
                      </Link>
                   </div>
@@ -202,7 +271,7 @@ export default function POS() {
             </div>
 
             {/* Product Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mt-5">
                {loadingProducts ? (
                   <div className="flex items-center gap-2 mt-10 w-full">
                      <IconLoader2 className="size-10 animate-spin text-gray-500" />
@@ -342,8 +411,8 @@ export default function POS() {
                      <span>Total:</span>
                      <span>${total.toFixed(2)}</span>
                   </div>
-                  <Button className="mt-4 w-full" onClick={handleCheckout}>
-                     Checkout
+                  <Button className="mt-4 w-full" onClick={handleSave}>
+                     {saving ? "Saving..." : "Checkout"}
                   </Button>
                </div>
             )}
