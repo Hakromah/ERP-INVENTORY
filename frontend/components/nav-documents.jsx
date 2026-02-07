@@ -31,7 +31,7 @@ export function NavDocuments({
             </SidebarMenuButton>
           </SidebarMenuItem>
         ))}
-        <Link href={"/dashboard/reports"}>
+        <Link href={"/dashboard/reports/moredetails"}>
         <SidebarMenuItem>
           <SidebarMenuButton className="text-sidebar-foreground/70">
             <IconDots className="text-sidebar-foreground/70" />
