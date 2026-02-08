@@ -38,7 +38,7 @@ const handler = NextAuth({
       })
    ],
    callbacks: {
-      async jwt({ token, user }) {
+      async jwt({ token, user, trigger, session }) {
          // If user object is available, add JWT to token
          if (user?.jwt) {
             token.jwt = user.jwt
@@ -46,6 +46,15 @@ const handler = NextAuth({
             token.firstName = user.firstName
             token.lastName = user.lastName
          }
+
+         // 2. Handle Session Updates (Triggered by update() in SettingsPage)
+         if (trigger === "update" && session) {
+            token.firstName = session.user.firstName
+            token.lastName = session.user.lastName
+            token.name = session.user.name // username
+            token.email = session.user.email
+         }
+
          return token
       },
       async session({ session, token }) {
