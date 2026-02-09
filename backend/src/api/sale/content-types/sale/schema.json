@@ -28,6 +28,7 @@
     },
     "invoice_number": {
       "type": "string",
+      "unique": true,
       "required": true
     },
     "customer_email": {

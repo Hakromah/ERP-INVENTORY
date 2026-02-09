@@ -46,6 +46,9 @@ export default function NewInvoicePage() {
    const [searchResults, setSearchResults] = useState([]);
    const [saving, setSaving] = useState(false);
 
+   // Add a state to track if we are fetching the number
+   const [generatingInvoice, setGeneratingInvoice] = useState(true);
+
    const form = useForm({
       resolver: zodResolver(schema),
       defaultValues: {
@@ -219,6 +222,28 @@ export default function NewInvoicePage() {
       }
    }
 
+   // --- NEW: Fetch Next Invoice Number on Mount ---
+   useEffect(() => {
+      const fetchInvoiceNumber = async () => {
+         try {
+            setGeneratingInvoice(true);
+            const res = await axiosInstance.get(`${process.env.NEXT_PUBLIC_STRAPI_URL}/api/sales/next-invoice-number`);
+
+            if (res.data && res.data.nextInvoiceNumber) {
+               // Update the form value
+               form.setValue("invoice_number", res.data.nextInvoiceNumber);
+            }
+         } catch (error) {
+            console.error("Failed to generate invoice number", error);
+            toast.error("Could not auto-generate invoice number");
+         } finally {
+            setGeneratingInvoice(false);
+         }
+      };
+
+      fetchInvoiceNumber();
+   }, [form]);
+
    return (
       <Form {...form}>
          <form onSubmit={form.handleSubmit(onSubmit)} className="w-full p-4 space-y-6">
@@ -236,9 +261,44 @@ export default function NewInvoicePage() {
                   {/* ... Customer Details Section (Identical to previous) ... */}
                   <Label className="mb-4 text-lg text-primary">Invoice Number</Label>
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                     <FormField control={form.control} name="invoice_number" render={({ field }) => (
-                        <FormItem><FormLabel>Invoice Number</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                     )} />
+                     {/* <FormField control={form.control} name="invoice_number" render={({ field }) => (
+                        <FormItem>
+                           <FormLabel>Invoice Number</FormLabel>
+                           <FormControl><Input {...field} />
+                           </FormControl>
+                           <FormMessage />
+                        </FormItem>
+                     )} /> */}
+
+                     {/* --- MODIFIED INVOICE NUMBER FIELD --- */}
+                     <FormField
+                        control={form.control}
+                        name="invoice_number"
+                        render={({ field }) => (
+                           <FormItem>
+                              <FormLabel>Invoice Number</FormLabel>
+                              <FormControl>
+                                 <div className="relative">
+                                    <Input
+                                       {...field}
+                                       readOnly
+                                       className="bg-gray-100 text-gray-600 font-bold"
+                                       placeholder={generatingInvoice ? "Generating..." : ""}
+                                    />
+                                    {generatingInvoice && (
+                                       <span className="absolute right-3 top-2 text-xs text-muted-foreground">
+                                          Loading...
+                                       </span>
+                                    )}
+                                 </div>
+                              </FormControl>
+                              <FormMessage />
+                           </FormItem>
+                        )}
+                     />
+                     {/* ------------------------------------- */}
+
+
                      <FormField control={form.control} name="date" render={({ field }) => (
                         <FormItem><FormLabel>Date & Time</FormLabel><FormControl><Input type="datetime-local" className="w-fit" {...field} value={field.value ? formatDateTimeLocal(new Date(field.value)) : ""} onChange={(e) => field.onChange(new Date(e.target.value))} /></FormControl><FormMessage /></FormItem>
                      )} />

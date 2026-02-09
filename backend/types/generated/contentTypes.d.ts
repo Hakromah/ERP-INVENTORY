@@ -514,7 +514,9 @@ export interface ApiSaleSale extends Struct.CollectionTypeSchema {
     customer_phone: Schema.Attribute.String;
     date: Schema.Attribute.DateTime;
     discount_amount: Schema.Attribute.Decimal;
-    invoice_number: Schema.Attribute.String & Schema.Attribute.Required;
+    invoice_number: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<'oneToMany', 'api::sale.sale'> &
       Schema.Attribute.Private;

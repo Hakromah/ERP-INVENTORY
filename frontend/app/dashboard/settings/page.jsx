@@ -88,23 +88,6 @@ export default function SettingsPage() {
    const onUpdateProfile = async (values) => {
       setLoadingProfile(true);
       try {
-         //const jwt = session?.jwt; // We need the JWT from the session
-
-         // Strapi endpoint: PUT /api/users/me
-         // await axiosInstance.put(
-         //    `${process.env.NEXT_PUBLIC_STRAPI_URL}/api/users/me`,
-         //    {
-         //       firstName: values.firstName,
-         //       lastName: values.lastName,
-         //       username: values.username,
-         //       email: values.email,
-         //    },
-         //    {
-         //       headers: {
-         //          Authorization: `Bearer ${jwt}`,
-         //       },
-         //    }
-         // );
 
          const userId = session?.user?.id;
 
